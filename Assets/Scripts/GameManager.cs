@@ -52,7 +52,15 @@ public class GameManager : MonoBehaviour
 
     void SpawnOneBall(GameObject tube, int stackPosition, int colorIndex)
     {
-        Vector3 spawnPosition = tube.transform.position + new Vector3(0, 0.5f + (stackPosition * 0.45f), 0);
+float tubeBottomY = tube.transform.position.y - 1f;
+float ballRadius = 0.2f;
+float stackSpacing = 0.42f;
+
+Vector3 spawnPosition = new Vector3(
+    tube.transform.position.x,
+    tubeBottomY + ballRadius + (stackPosition * stackSpacing),
+    tube.transform.position.z
+);
         GameObject newBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
         newBall.GetComponent<Renderer>().material = ballMaterials[colorIndex];
     }
