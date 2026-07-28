@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
     public int tubeCapacity = 4;
     public int filledTubeCount = 4;
 
+    GameObject selectedTube = null;
+
     void Start()
     {
         SpawnBalls();
@@ -17,7 +19,6 @@ public class GameManager : MonoBehaviour
 
     void SpawnBalls()
     {
-        // Step 1: Build a list of all ball colors we need (4 of each color)
         List<int> colorPool = new List<int>();
         for (int colorIndex = 0; colorIndex < ballMaterials.Length; colorIndex++)
         {
@@ -27,7 +28,6 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // Step 2: Shuffle that list randomly
         for (int i = 0; i < colorPool.Count; i++)
         {
             int randomIndex = Random.Range(0, colorPool.Count);
@@ -36,7 +36,6 @@ public class GameManager : MonoBehaviour
             colorPool[randomIndex] = temp;
         }
 
-        // Step 3: Fill the first N tubes using the shuffled colors
         int colorPoolPosition = 0;
         for (int tubeIndex = 0; tubeIndex < filledTubeCount; tubeIndex++)
         {
@@ -50,38 +49,134 @@ public class GameManager : MonoBehaviour
         }
     }
 
-void Update()
-{
-    if (Input.GetMouseButtonDown(0))
+    void Update()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit))
+        if (Input.GetMouseButtonDown(0))
         {
-            TubeController clickedTube = hit.collider.GetComponent<TubeController>();
-            if (clickedTube != null)
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
             {
-                Debug.Log("Clicked tube: " + hit.collider.gameObject.name);
+                TubeController clickedTube = hit.collider.GetComponent<TubeController>();
+                if (clickedTube != null)
+                {
+                    HandleTubeClick(hit.collider.gameObject);
+                }
             }
         }
     }
-}
-void SpawnOneBall(GameObject tube, int stackPosition, int colorIndex)
-{
-    float tubeBottomY = tube.transform.position.y - 1f;
-    float ballRadius = 0.2f;
-    float stackSpacing = 0.42f;
 
-    Vector3 spawnPosition = new Vector3(
-        tube.transform.position.x,
-        tubeBottomY + ballRadius + (stackPosition * stackSpacing),
-        tube.transform.position.z
-    );
-    GameObject newBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
-    newBall.GetComponent<Renderer>().material = ballMaterials[colorIndex];
+    void HandleTubeClick(GameObject clickedTube)
+    {
+        if (selectedTube == null)
+        {
+            // Nothing selected yet -> select this tube
+            selectedTube = clickedTube;
+            MoveTubeAndBalls(selectedTube, new Vector3(0, 0.3f, 0));
+            Debug.Log("Selected: " + selectedTube.name);
+        }
+        else if (selectedTube == clickedTube)
+        {
+            // Clicked the same tube again -> just deselect
+            MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
+            selectedTube = null;
+            Debug.Log("Deselected");
+        }
+        else
+        {
+            // A different tube was clicked -> attempt to pour
+            TryPour(selectedTube, clickedTube);
 
-    TubeController tubeController = tube.GetComponent<TubeController>();
-    tubeController.ballsInTube.Add(newBall);
-}
+            // Always lower the source tube back down and clear selection
+            MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
+            selectedTube = null;
+        }
+    }
+
+    void TryPour(GameObject fromTubeObj, GameObject toTubeObj)
+    {
+        TubeController fromTube = fromTubeObj.GetComponent<TubeController>();
+        TubeController toTube = toTubeObj.GetComponent<TubeController>();
+
+        if (fromTube.ballsInTube.Count == 0)
+        {
+            Debug.Log("Source tube is empty, nothing to pour.");
+            return;
+        }
+
+        if (toTube.ballsInTube.Count >= toTube.maxCapacity)
+        {
+            Debug.Log("Destination tube is full.");
+            return;
+        }
+
+        GameObject topBall = fromTube.ballsInTube[fromTube.ballsInTube.Count - 1];
+        BallController topBallData = topBall.GetComponent<BallController>();
+
+        bool destinationIsEmpty = toTube.ballsInTube.Count == 0;
+        bool colorsMatch = false;
+
+        if (!destinationIsEmpty)
+        {
+            GameObject destTopBall = toTube.ballsInTube[toTube.ballsInTube.Count - 1];
+            BallController destTopBallData = destTopBall.GetComponent<BallController>();
+            colorsMatch = (destTopBallData.colorIndex == topBallData.colorIndex);
+        }
+
+        if (destinationIsEmpty || colorsMatch)
+        {
+            // Legal move - transfer the ball
+            fromTube.ballsInTube.RemoveAt(fromTube.ballsInTube.Count - 1);
+
+            int newStackPosition = toTube.ballsInTube.Count;
+            Vector3 newPosition = GetBallPosition(toTubeObj, newStackPosition);
+            topBall.transform.position = newPosition;
+
+            toTube.ballsInTube.Add(topBall);
+
+            Debug.Log("Poured a ball from " + fromTubeObj.name + " to " + toTubeObj.name);
+        }
+        else
+        {
+            Debug.Log("Illegal move: colors do not match.");
+        }
+    }
+
+    Vector3 GetBallPosition(GameObject tube, int stackPosition)
+    {
+        float tubeBottomY = tube.transform.position.y - 1f;
+        float ballRadius = 0.2f;
+        float stackSpacing = 0.42f;
+
+        return new Vector3(
+            tube.transform.position.x,
+            tubeBottomY + ballRadius + (stackPosition * stackSpacing),
+            tube.transform.position.z
+        );
+    }
+
+    void MoveTubeAndBalls(GameObject tube, Vector3 offset)
+    {
+        tube.transform.position += offset;
+
+        TubeController tubeController = tube.GetComponent<TubeController>();
+        foreach (GameObject ball in tubeController.ballsInTube)
+        {
+            ball.transform.position += offset;
+        }
+    }
+
+    void SpawnOneBall(GameObject tube, int stackPosition, int colorIndex)
+    {
+        Vector3 spawnPosition = GetBallPosition(tube, stackPosition);
+        GameObject newBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
+        newBall.GetComponent<Renderer>().material = ballMaterials[colorIndex];
+
+        BallController ballData = newBall.GetComponent<BallController>();
+        ballData.colorIndex = colorIndex;
+
+        TubeController tubeController = tube.GetComponent<TubeController>();
+        tubeController.ballsInTube.Add(newBall);
+    }
 }
