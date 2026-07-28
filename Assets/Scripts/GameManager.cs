@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
     public int filledTubeCount = 4;
 
     GameObject selectedTube = null;
+    bool gameWon = false;
 
     void Start()
     {
@@ -51,6 +52,8 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (gameWon) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -71,24 +74,20 @@ public class GameManager : MonoBehaviour
     {
         if (selectedTube == null)
         {
-            // Nothing selected yet -> select this tube
             selectedTube = clickedTube;
             MoveTubeAndBalls(selectedTube, new Vector3(0, 0.3f, 0));
             Debug.Log("Selected: " + selectedTube.name);
         }
         else if (selectedTube == clickedTube)
         {
-            // Clicked the same tube again -> just deselect
             MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
             selectedTube = null;
             Debug.Log("Deselected");
         }
         else
         {
-            // A different tube was clicked -> attempt to pour
             TryPour(selectedTube, clickedTube);
 
-            // Always lower the source tube back down and clear selection
             MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
             selectedTube = null;
         }
@@ -126,7 +125,6 @@ public class GameManager : MonoBehaviour
 
         if (destinationIsEmpty || colorsMatch)
         {
-            // Legal move - transfer the ball
             fromTube.ballsInTube.RemoveAt(fromTube.ballsInTube.Count - 1);
 
             int newStackPosition = toTube.ballsInTube.Count;
@@ -136,11 +134,44 @@ public class GameManager : MonoBehaviour
             toTube.ballsInTube.Add(topBall);
 
             Debug.Log("Poured a ball from " + fromTubeObj.name + " to " + toTubeObj.name);
+
+            CheckWinCondition();
         }
         else
         {
             Debug.Log("Illegal move: colors do not match.");
         }
+    }
+
+    void CheckWinCondition()
+    {
+        foreach (GameObject tubeObj in tubes)
+        {
+            TubeController tube = tubeObj.GetComponent<TubeController>();
+
+            if (tube.ballsInTube.Count == 0)
+            {
+                continue; // empty tubes are fine
+            }
+
+            if (tube.ballsInTube.Count < tube.maxCapacity)
+            {
+                return; // partially filled tube -> not solved yet
+            }
+
+            int firstColor = tube.ballsInTube[0].GetComponent<BallController>().colorIndex;
+            foreach (GameObject ball in tube.ballsInTube)
+            {
+                int thisColor = ball.GetComponent<BallController>().colorIndex;
+                if (thisColor != firstColor)
+                {
+                    return; // mixed colors -> not solved yet
+                }
+            }
+        }
+
+        gameWon = true;
+        Debug.Log("YOU WIN!");
     }
 
     Vector3 GetBallPosition(GameObject tube, int stackPosition)
