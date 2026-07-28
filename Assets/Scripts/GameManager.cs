@@ -50,18 +50,38 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void SpawnOneBall(GameObject tube, int stackPosition, int colorIndex)
+void Update()
+{
+    if (Input.GetMouseButtonDown(0))
     {
-float tubeBottomY = tube.transform.position.y - 1f;
-float ballRadius = 0.2f;
-float stackSpacing = 0.42f;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
 
-Vector3 spawnPosition = new Vector3(
-    tube.transform.position.x,
-    tubeBottomY + ballRadius + (stackPosition * stackSpacing),
-    tube.transform.position.z
-);
-        GameObject newBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
-        newBall.GetComponent<Renderer>().material = ballMaterials[colorIndex];
+        if (Physics.Raycast(ray, out hit))
+        {
+            TubeController clickedTube = hit.collider.GetComponent<TubeController>();
+            if (clickedTube != null)
+            {
+                Debug.Log("Clicked tube: " + hit.collider.gameObject.name);
+            }
+        }
     }
+}
+void SpawnOneBall(GameObject tube, int stackPosition, int colorIndex)
+{
+    float tubeBottomY = tube.transform.position.y - 1f;
+    float ballRadius = 0.2f;
+    float stackSpacing = 0.42f;
+
+    Vector3 spawnPosition = new Vector3(
+        tube.transform.position.x,
+        tubeBottomY + ballRadius + (stackPosition * stackSpacing),
+        tube.transform.position.z
+    );
+    GameObject newBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
+    newBall.GetComponent<Renderer>().material = ballMaterials[colorIndex];
+
+    TubeController tubeController = tube.GetComponent<TubeController>();
+    tubeController.ballsInTube.Add(newBall);
+}
 }

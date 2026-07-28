@@ -388,11 +388,39 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 2138020347}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &604339459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 604339454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1 &672886975 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 1773022099}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &672886980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 672886975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -506,6 +534,20 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 1679614332}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1085470229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1085470224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1001 &1134563807
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -561,13 +603,30 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2016077175}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1 &1213985256 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 5434245112427106971}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1213985261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1213985256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1001 &1679614332
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -623,7 +682,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1085470229}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1001 &1773022099
 PrefabInstance:
@@ -680,18 +742,49 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 672886980}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1 &1934629912 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 2088472683}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1934629917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1934629912}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1 &2016077170 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
   m_PrefabInstance: {fileID: 1134563807}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2016077175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016077170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df27a73f528385409b2c5a34041fc33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TubeController
+  ballsInTube: []
+  maxCapacity: 4
 --- !u!1001 &2088472683
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -747,7 +840,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1934629917}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1001 &2138020347
 PrefabInstance:
@@ -804,7 +900,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 604339459}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1001 &5434245112427106971
 PrefabInstance:
@@ -861,7 +960,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1386558985522518177, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1213985261}
   m_SourcePrefab: {fileID: 100100000, guid: f4dfef04e6f53614289508bc9880b825, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
