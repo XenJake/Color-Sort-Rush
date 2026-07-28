@@ -6,6 +6,7 @@ public class GameManager : MonoBehaviour
     public GameObject[] tubes;
     public GameObject ballPrefab;
     public Material[] ballMaterials;
+    public GameObject winPopup;
 
     public int tubeCapacity = 4;
     public int filledTubeCount = 4;
@@ -151,12 +152,12 @@ public class GameManager : MonoBehaviour
 
             if (tube.ballsInTube.Count == 0)
             {
-                continue; // empty tubes are fine
+                continue;
             }
 
             if (tube.ballsInTube.Count < tube.maxCapacity)
             {
-                return; // partially filled tube -> not solved yet
+                return;
             }
 
             int firstColor = tube.ballsInTube[0].GetComponent<BallController>().colorIndex;
@@ -165,13 +166,14 @@ public class GameManager : MonoBehaviour
                 int thisColor = ball.GetComponent<BallController>().colorIndex;
                 if (thisColor != firstColor)
                 {
-                    return; // mixed colors -> not solved yet
+                    return;
                 }
             }
         }
 
         gameWon = true;
         Debug.Log("YOU WIN!");
+        winPopup.SetActive(true);
     }
 
     Vector3 GetBallPosition(GameObject tube, int stackPosition)
