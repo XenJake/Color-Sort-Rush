@@ -19,6 +19,28 @@ public class GameManager : MonoBehaviour
         SpawnBalls();
     }
 
+    public void RestartGame()
+    {
+        // Clear existing balls from every tube
+        foreach (GameObject tubeObj in tubes)
+        {
+            TubeController tube = tubeObj.GetComponent<TubeController>();
+            foreach (GameObject ball in tube.ballsInTube)
+            {
+                Destroy(ball);
+            }
+            tube.ballsInTube.Clear();
+        }
+
+        // Reset game state
+        gameWon = false;
+        selectedTube = null;
+        winPopup.SetActive(false);
+
+        // Spawn a fresh board
+        SpawnBalls();
+    }
+
     void SpawnBalls()
     {
         List<int> colorPool = new List<int>();
