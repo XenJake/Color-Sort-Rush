@@ -17,6 +17,15 @@ public class GameManager : MonoBehaviour
     bool gameWon = false;
     int moveCount = 0;
 
+    struct MoveRecord
+    {
+        public GameObject fromTube;
+        public GameObject toTube;
+        public GameObject ball;
+    }
+
+    Stack<MoveRecord> moveHistory = new Stack<MoveRecord>();
+
     void Start()
     {
         SpawnBalls();
@@ -38,10 +47,33 @@ public class GameManager : MonoBehaviour
         gameWon = false;
         selectedTube = null;
         moveCount = 0;
+        moveHistory.Clear();
         winPopup.SetActive(false);
         UpdateMoveCounterDisplay();
 
         SpawnBalls();
+    }
+
+    public void UndoMove()
+    {
+        if (gameWon) return;
+        if (moveHistory.Count == 0) return;
+
+        MoveRecord lastMove = moveHistory.Pop();
+
+        TubeController toTube = lastMove.toTube.GetComponent<TubeController>();
+        TubeController fromTube = lastMove.fromTube.GetComponent<TubeController>();
+
+        toTube.ballsInTube.RemoveAt(toTube.ballsInTube.Count - 1);
+
+        int newStackPosition = fromTube.ballsInTube.Count;
+        Vector3 newPosition = GetBallPosition(lastMove.fromTube, newStackPosition);
+        lastMove.ball.transform.position = newPosition;
+
+        fromTube.ballsInTube.Add(lastMove.ball);
+
+        moveCount--;
+        UpdateMoveCounterDisplay();
     }
 
     void SpawnBalls()
@@ -154,6 +186,12 @@ public class GameManager : MonoBehaviour
             topBall.transform.position = newPosition;
 
             toTube.ballsInTube.Add(topBall);
+
+            MoveRecord record = new MoveRecord();
+            record.fromTube = fromTubeObj;
+            record.toTube = toTubeObj;
+            record.ball = topBall;
+            moveHistory.Push(record);
 
             moveCount++;
             UpdateMoveCounterDisplay();
