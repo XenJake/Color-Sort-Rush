@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -7,21 +8,23 @@ public class GameManager : MonoBehaviour
     public GameObject ballPrefab;
     public Material[] ballMaterials;
     public GameObject winPopup;
+    public TMP_Text moveCounterText;
 
     public int tubeCapacity = 4;
     public int filledTubeCount = 4;
 
     GameObject selectedTube = null;
     bool gameWon = false;
+    int moveCount = 0;
 
     void Start()
     {
         SpawnBalls();
+        UpdateMoveCounterDisplay();
     }
 
     public void RestartGame()
     {
-        // Clear existing balls from every tube
         foreach (GameObject tubeObj in tubes)
         {
             TubeController tube = tubeObj.GetComponent<TubeController>();
@@ -32,12 +35,12 @@ public class GameManager : MonoBehaviour
             tube.ballsInTube.Clear();
         }
 
-        // Reset game state
         gameWon = false;
         selectedTube = null;
+        moveCount = 0;
         winPopup.SetActive(false);
+        UpdateMoveCounterDisplay();
 
-        // Spawn a fresh board
         SpawnBalls();
     }
 
@@ -99,13 +102,11 @@ public class GameManager : MonoBehaviour
         {
             selectedTube = clickedTube;
             MoveTubeAndBalls(selectedTube, new Vector3(0, 0.3f, 0));
-            Debug.Log("Selected: " + selectedTube.name);
         }
         else if (selectedTube == clickedTube)
         {
             MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
             selectedTube = null;
-            Debug.Log("Deselected");
         }
         else
         {
@@ -123,13 +124,11 @@ public class GameManager : MonoBehaviour
 
         if (fromTube.ballsInTube.Count == 0)
         {
-            Debug.Log("Source tube is empty, nothing to pour.");
             return;
         }
 
         if (toTube.ballsInTube.Count >= toTube.maxCapacity)
         {
-            Debug.Log("Destination tube is full.");
             return;
         }
 
@@ -156,14 +155,16 @@ public class GameManager : MonoBehaviour
 
             toTube.ballsInTube.Add(topBall);
 
-            Debug.Log("Poured a ball from " + fromTubeObj.name + " to " + toTubeObj.name);
+            moveCount++;
+            UpdateMoveCounterDisplay();
 
             CheckWinCondition();
         }
-        else
-        {
-            Debug.Log("Illegal move: colors do not match.");
-        }
+    }
+
+    void UpdateMoveCounterDisplay()
+    {
+        moveCounterText.text = "Moves: " + moveCount;
     }
 
     void CheckWinCondition()
@@ -194,7 +195,6 @@ public class GameManager : MonoBehaviour
         }
 
         gameWon = true;
-        Debug.Log("YOU WIN!");
         winPopup.SetActive(true);
     }
 
