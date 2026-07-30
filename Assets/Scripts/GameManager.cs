@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 
@@ -13,8 +14,17 @@ public class GameManager : MonoBehaviour
     public int tubeCapacity = 4;
     public int filledTubeCount = 4;
 
+    public float tubeLiftHeight = 0.3f;
+    public float ballClearanceAboveRim = 0.4f;
+    public float liftMoveDuration = 0.15f;
+    public float horizontalMoveDuration = 0.2f;
+    public float dropDuration = 0.15f;
+
     GameObject selectedTube = null;
+    GameObject liftedBall = null;
+    Vector3 liftedBallRestingPosition;
     bool gameWon = false;
+    bool isAnimating = false;
     int moveCount = 0;
 
     struct MoveRecord
@@ -45,7 +55,9 @@ public class GameManager : MonoBehaviour
         }
 
         gameWon = false;
+        isAnimating = false;
         selectedTube = null;
+        liftedBall = null;
         moveCount = 0;
         moveHistory.Clear();
         winPopup.SetActive(false);
@@ -57,6 +69,7 @@ public class GameManager : MonoBehaviour
     public void UndoMove()
     {
         if (gameWon) return;
+        if (isAnimating) return;
         if (moveHistory.Count == 0) return;
 
         MoveRecord lastMove = moveHistory.Pop();
@@ -68,9 +81,10 @@ public class GameManager : MonoBehaviour
 
         int newStackPosition = fromTube.ballsInTube.Count;
         Vector3 newPosition = GetBallPosition(lastMove.fromTube, newStackPosition);
-        lastMove.ball.transform.position = newPosition;
 
         fromTube.ballsInTube.Add(lastMove.ball);
+
+        StartCoroutine(SimpleMoveAnimation(lastMove.ball, newPosition, dropDuration));
 
         moveCount--;
         UpdateMoveCounterDisplay();
@@ -111,6 +125,7 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         if (gameWon) return;
+        if (isAnimating) return;
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -132,72 +147,167 @@ public class GameManager : MonoBehaviour
     {
         if (selectedTube == null)
         {
-            selectedTube = clickedTube;
-            MoveTubeAndBalls(selectedTube, new Vector3(0, 0.3f, 0));
+            SelectTube(clickedTube);
         }
         else if (selectedTube == clickedTube)
         {
-            MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
-            selectedTube = null;
+            DeselectCurrentTube();
         }
         else
         {
-            TryPour(selectedTube, clickedTube);
-
-            MoveTubeAndBalls(selectedTube, new Vector3(0, -0.3f, 0));
-            selectedTube = null;
+            AttemptPour(selectedTube, clickedTube);
         }
     }
 
-    void TryPour(GameObject fromTubeObj, GameObject toTubeObj)
+    void SelectTube(GameObject tube)
+    {
+        selectedTube = tube;
+        MoveTubeAndBalls(selectedTube, new Vector3(0, tubeLiftHeight, 0));
+
+        TubeController tc = selectedTube.GetComponent<TubeController>();
+        if (tc.ballsInTube.Count > 0)
+        {
+            liftedBall = tc.ballsInTube[tc.ballsInTube.Count - 1];
+            liftedBallRestingPosition = liftedBall.transform.position;
+
+            float tubeTopY = tube.transform.position.y + 1f;
+            float targetY = tubeTopY + ballClearanceAboveRim;
+            Vector3 targetPos = new Vector3(liftedBall.transform.position.x, targetY, liftedBall.transform.position.z);
+
+            StartCoroutine(SimpleMoveAnimation(liftedBall, targetPos, liftMoveDuration));
+        }
+    }
+
+    void DeselectCurrentTube()
+    {
+        GameObject tubeToLower = selectedTube;
+        GameObject ballToRestore = liftedBall;
+        Vector3 restingPosition = liftedBallRestingPosition;
+
+        selectedTube = null;
+        liftedBall = null;
+
+        if (ballToRestore != null)
+        {
+            StartCoroutine(SimpleMoveAnimation(ballToRestore, restingPosition, liftMoveDuration));
+        }
+
+        MoveTubeAndBallsExcept(tubeToLower, new Vector3(0, -tubeLiftHeight, 0), ballToRestore);
+    }
+
+    void AttemptPour(GameObject fromTubeObj, GameObject toTubeObj)
     {
         TubeController fromTube = fromTubeObj.GetComponent<TubeController>();
         TubeController toTube = toTubeObj.GetComponent<TubeController>();
 
+        bool canPour = true;
+
         if (fromTube.ballsInTube.Count == 0)
         {
+            canPour = false;
+        }
+        else if (toTube.ballsInTube.Count >= toTube.maxCapacity)
+        {
+            canPour = false;
+        }
+        else
+        {
+            BallController topBallData = liftedBall.GetComponent<BallController>();
+            bool destinationIsEmpty = toTube.ballsInTube.Count == 0;
+
+            if (!destinationIsEmpty)
+            {
+                GameObject destTopBall = toTube.ballsInTube[toTube.ballsInTube.Count - 1];
+                BallController destTopBallData = destTopBall.GetComponent<BallController>();
+                if (destTopBallData.colorIndex != topBallData.colorIndex)
+                {
+                    canPour = false;
+                }
+            }
+        }
+
+        if (!canPour)
+        {
+            DeselectCurrentTube();
             return;
         }
 
-        if (toTube.ballsInTube.Count >= toTube.maxCapacity)
+        GameObject ballToMove = liftedBall;
+
+        fromTube.ballsInTube.RemoveAt(fromTube.ballsInTube.Count - 1);
+
+        int newStackPosition = toTube.ballsInTube.Count;
+        Vector3 finalPosition = GetBallPosition(toTubeObj, newStackPosition);
+
+        toTube.ballsInTube.Add(ballToMove);
+
+        MoveRecord record = new MoveRecord();
+        record.fromTube = fromTubeObj;
+        record.toTube = toTubeObj;
+        record.ball = ballToMove;
+        moveHistory.Push(record);
+
+        moveCount++;
+        UpdateMoveCounterDisplay();
+
+        MoveTubeAndBallsExcept(fromTubeObj, new Vector3(0, -tubeLiftHeight, 0), ballToMove);
+
+        selectedTube = null;
+        liftedBall = null;
+
+        StartCoroutine(PourBallAnimation(ballToMove, finalPosition));
+    }
+
+    IEnumerator PourBallAnimation(GameObject ball, Vector3 finalPosition)
+    {
+        isAnimating = true;
+
+        Vector3 startPosition = ball.transform.position;
+        Vector3 sidewaysTarget = new Vector3(finalPosition.x, startPosition.y, finalPosition.z);
+
+        float elapsedTime = 0f;
+        while (elapsedTime < horizontalMoveDuration)
         {
-            return;
+            elapsedTime += Time.deltaTime;
+            float progress = elapsedTime / horizontalMoveDuration;
+            ball.transform.position = Vector3.Lerp(startPosition, sidewaysTarget, progress);
+            yield return null;
         }
+        ball.transform.position = sidewaysTarget;
 
-        GameObject topBall = fromTube.ballsInTube[fromTube.ballsInTube.Count - 1];
-        BallController topBallData = topBall.GetComponent<BallController>();
-
-        bool destinationIsEmpty = toTube.ballsInTube.Count == 0;
-        bool colorsMatch = false;
-
-        if (!destinationIsEmpty)
+        Vector3 dropStart = ball.transform.position;
+        elapsedTime = 0f;
+        while (elapsedTime < dropDuration)
         {
-            GameObject destTopBall = toTube.ballsInTube[toTube.ballsInTube.Count - 1];
-            BallController destTopBallData = destTopBall.GetComponent<BallController>();
-            colorsMatch = (destTopBallData.colorIndex == topBallData.colorIndex);
+            elapsedTime += Time.deltaTime;
+            float progress = elapsedTime / dropDuration;
+            ball.transform.position = Vector3.Lerp(dropStart, finalPosition, progress);
+            yield return null;
         }
+        ball.transform.position = finalPosition;
 
-        if (destinationIsEmpty || colorsMatch)
+        isAnimating = false;
+
+        CheckWinCondition();
+    }
+
+    IEnumerator SimpleMoveAnimation(GameObject ball, Vector3 targetPosition, float duration)
+    {
+        isAnimating = true;
+
+        Vector3 startPosition = ball.transform.position;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < duration)
         {
-            fromTube.ballsInTube.RemoveAt(fromTube.ballsInTube.Count - 1);
-
-            int newStackPosition = toTube.ballsInTube.Count;
-            Vector3 newPosition = GetBallPosition(toTubeObj, newStackPosition);
-            topBall.transform.position = newPosition;
-
-            toTube.ballsInTube.Add(topBall);
-
-            MoveRecord record = new MoveRecord();
-            record.fromTube = fromTubeObj;
-            record.toTube = toTubeObj;
-            record.ball = topBall;
-            moveHistory.Push(record);
-
-            moveCount++;
-            UpdateMoveCounterDisplay();
-
-            CheckWinCondition();
+            elapsedTime += Time.deltaTime;
+            float progress = elapsedTime / duration;
+            ball.transform.position = Vector3.Lerp(startPosition, targetPosition, progress);
+            yield return null;
         }
+        ball.transform.position = targetPosition;
+
+        isAnimating = false;
     }
 
     void UpdateMoveCounterDisplay()
@@ -256,6 +366,18 @@ public class GameManager : MonoBehaviour
         TubeController tubeController = tube.GetComponent<TubeController>();
         foreach (GameObject ball in tubeController.ballsInTube)
         {
+            ball.transform.position += offset;
+        }
+    }
+
+    void MoveTubeAndBallsExcept(GameObject tube, Vector3 offset, GameObject excludedBall)
+    {
+        tube.transform.position += offset;
+
+        TubeController tubeController = tube.GetComponent<TubeController>();
+        foreach (GameObject ball in tubeController.ballsInTube)
+        {
+            if (ball == excludedBall) continue;
             ball.transform.position += offset;
         }
     }
