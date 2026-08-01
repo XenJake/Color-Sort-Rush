@@ -5,14 +5,18 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    public GameObject[] tubes;
+    public GameObject tubePrefab;
     public GameObject ballPrefab;
     public Material[] ballMaterials;
     public GameObject winPopup;
     public TMP_Text moveCounterText;
+    public TMP_Text levelText;
 
     public int tubeCapacity = 4;
-    public int filledTubeCount = 4;
+    public int tubesPerRow = 4;
+    public float tubeSpacingX = 1.2f;
+    public float rowSpacingY = 3.5f;
+    public float boardBaseHeight = 4f;
 
     public float tubeLiftHeight = 0.3f;
     public float ballClearanceAboveRim = 0.4f;
@@ -20,12 +24,14 @@ public class GameManager : MonoBehaviour
     public float horizontalMoveDuration = 0.2f;
     public float dropDuration = 0.15f;
 
+    GameObject[] tubes;
     GameObject selectedTube = null;
     GameObject liftedBall = null;
     Vector3 liftedBallRestingPosition;
     bool gameWon = false;
     bool isAnimating = false;
     int moveCount = 0;
+    int currentLevel = 1;
 
     struct MoveRecord
     {
@@ -38,20 +44,41 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        SpawnBalls();
-        UpdateMoveCounterDisplay();
+        StartNewBoard();
+    }
+
+    int GetColorsForLevel(int level)
+    {
+        if (level <= 1) return 4;
+        if (level == 2) return 5;
+        return 6;
+    }
+
+    public void NextLevel()
+    {
+        currentLevel++;
+        StartNewBoard();
     }
 
     public void RestartGame()
     {
-        foreach (GameObject tubeObj in tubes)
+        StartNewBoard();
+    }
+
+    void StartNewBoard()
+    {
+        if (tubes != null)
         {
-            TubeController tube = tubeObj.GetComponent<TubeController>();
-            foreach (GameObject ball in tube.ballsInTube)
+            foreach (GameObject tubeObj in tubes)
             {
-                Destroy(ball);
+                if (tubeObj == null) continue;
+                TubeController tc = tubeObj.GetComponent<TubeController>();
+                foreach (GameObject ball in tc.ballsInTube)
+                {
+                    Destroy(ball);
+                }
+                Destroy(tubeObj);
             }
-            tube.ballsInTube.Clear();
         }
 
         gameWon = false;
@@ -62,8 +89,94 @@ public class GameManager : MonoBehaviour
         moveHistory.Clear();
         winPopup.SetActive(false);
         UpdateMoveCounterDisplay();
+        UpdateLevelDisplay();
 
-        SpawnBalls();
+        int colorsThisLevel = GetColorsForLevel(currentLevel);
+        int totalTubes = colorsThisLevel + 2;
+
+        GenerateTubes(totalTubes);
+
+        List<List<int>> board = GenerateSolvableBoard(colorsThisLevel, totalTubes);
+
+        for (int t = 0; t < tubes.Length; t++)
+        {
+            List<int> stack = board[t];
+            for (int slot = 0; slot < stack.Count; slot++)
+            {
+                SpawnOneBall(tubes[t], slot, stack[slot]);
+            }
+        }
+    }
+
+    void GenerateTubes(int totalTubes)
+    {
+        tubes = new GameObject[totalTubes];
+        int tubeIndex = 0;
+        int rowCount = Mathf.CeilToInt(totalTubes / (float)tubesPerRow);
+
+        for (int row = 0; row < rowCount; row++)
+        {
+            int remaining = totalTubes - tubeIndex;
+            int countInRow = Mathf.Min(tubesPerRow, remaining);
+
+            float totalWidth = (countInRow - 1) * tubeSpacingX;
+            float startX = -totalWidth / 2f;
+
+            for (int col = 0; col < countInRow; col++)
+            {
+                float x = startX + (col * tubeSpacingX);
+                float y = boardBaseHeight - (row * rowSpacingY);
+                Vector3 pos = new Vector3(x, y, 0);
+
+                GameObject newTube = Instantiate(tubePrefab, pos, Quaternion.identity);
+                tubes[tubeIndex] = newTube;
+                tubeIndex++;
+            }
+        }
+    }
+
+    List<List<int>> GenerateSolvableBoard(int colorsThisLevel, int totalTubes)
+    {
+        List<List<int>> stacks = new List<List<int>>();
+        for (int i = 0; i < totalTubes; i++)
+        {
+            stacks.Add(new List<int>());
+        }
+
+        for (int colorIndex = 0; colorIndex < colorsThisLevel; colorIndex++)
+        {
+            for (int n = 0; n < tubeCapacity; n++)
+            {
+                stacks[colorIndex].Add(colorIndex);
+            }
+        }
+
+        int totalBalls = colorsThisLevel * tubeCapacity;
+        int scrambleMoves = (totalBalls * 4) + (currentLevel * 5);
+
+        for (int m = 0; m < scrambleMoves; m++)
+        {
+            int attempts = 0;
+            bool moved = false;
+
+            while (attempts < 50 && !moved)
+            {
+                attempts++;
+                int from = Random.Range(0, totalTubes);
+                int to = Random.Range(0, totalTubes);
+
+                if (from == to) continue;
+                if (stacks[from].Count == 0) continue;
+                if (stacks[to].Count >= tubeCapacity) continue;
+
+                int ballColor = stacks[from][stacks[from].Count - 1];
+                stacks[from].RemoveAt(stacks[from].Count - 1);
+                stacks[to].Add(ballColor);
+                moved = true;
+            }
+        }
+
+        return stacks;
     }
 
     public void UndoMove()
@@ -88,38 +201,6 @@ public class GameManager : MonoBehaviour
 
         moveCount--;
         UpdateMoveCounterDisplay();
-    }
-
-    void SpawnBalls()
-    {
-        List<int> colorPool = new List<int>();
-        for (int colorIndex = 0; colorIndex < ballMaterials.Length; colorIndex++)
-        {
-            for (int count = 0; count < tubeCapacity; count++)
-            {
-                colorPool.Add(colorIndex);
-            }
-        }
-
-        for (int i = 0; i < colorPool.Count; i++)
-        {
-            int randomIndex = Random.Range(0, colorPool.Count);
-            int temp = colorPool[i];
-            colorPool[i] = colorPool[randomIndex];
-            colorPool[randomIndex] = temp;
-        }
-
-        int colorPoolPosition = 0;
-        for (int tubeIndex = 0; tubeIndex < filledTubeCount; tubeIndex++)
-        {
-            for (int slot = 0; slot < tubeCapacity; slot++)
-            {
-                int colorToUse = colorPool[colorPoolPosition];
-                colorPoolPosition++;
-
-                SpawnOneBall(tubes[tubeIndex], slot, colorToUse);
-            }
-        }
     }
 
     void Update()
@@ -162,14 +243,18 @@ public class GameManager : MonoBehaviour
     void SelectTube(GameObject tube)
     {
         selectedTube = tube;
-        MoveTubeAndBalls(selectedTube, new Vector3(0, tubeLiftHeight, 0));
 
         TubeController tc = selectedTube.GetComponent<TubeController>();
         if (tc.ballsInTube.Count > 0)
         {
             liftedBall = tc.ballsInTube[tc.ballsInTube.Count - 1];
             liftedBallRestingPosition = liftedBall.transform.position;
+        }
 
+        MoveTubeAndBalls(selectedTube, new Vector3(0, tubeLiftHeight, 0));
+
+        if (liftedBall != null)
+        {
             float tubeTopY = tube.transform.position.y + 1f;
             float targetY = tubeTopY + ballClearanceAboveRim;
             Vector3 targetPos = new Vector3(liftedBall.transform.position.x, targetY, liftedBall.transform.position.z);
@@ -250,46 +335,45 @@ public class GameManager : MonoBehaviour
         moveCount++;
         UpdateMoveCounterDisplay();
 
-        MoveTubeAndBallsExcept(fromTubeObj, new Vector3(0, -tubeLiftHeight, 0), ballToMove);
+      MoveTubeAndBallsExcept(fromTubeObj, new Vector3(0, -tubeLiftHeight, 0), ballToMove);
 
-        selectedTube = null;
-        liftedBall = null;
+selectedTube = null;
+liftedBall = null;
 
-        StartCoroutine(PourBallAnimation(ballToMove, finalPosition));
+StartCoroutine(PourBallAnimation(ballToMove, finalPosition));
     }
 
-    IEnumerator PourBallAnimation(GameObject ball, Vector3 finalPosition)
+IEnumerator PourBallAnimation(GameObject ball, Vector3 finalPosition)
+{
+    isAnimating = true;
+
+    Vector3 startPosition = ball.transform.position;
+    float duration = horizontalMoveDuration + dropDuration;
+
+    float heightDifference = Mathf.Abs(finalPosition.y - startPosition.y);
+    float arcHeight = Mathf.Max(0.8f, heightDifference * 0.6f);
+
+    float elapsedTime = 0f;
+    while (elapsedTime < duration)
     {
-        isAnimating = true;
+        elapsedTime += Time.deltaTime;
+        float progress = elapsedTime / duration;
 
-        Vector3 startPosition = ball.transform.position;
-        Vector3 sidewaysTarget = new Vector3(finalPosition.x, startPosition.y, finalPosition.z);
+        float x = Mathf.Lerp(startPosition.x, finalPosition.x, progress);
+        float z = Mathf.Lerp(startPosition.z, finalPosition.z, progress);
+        float baseY = Mathf.Lerp(startPosition.y, finalPosition.y, progress);
+        float arcBoost = Mathf.Sin(progress * Mathf.PI) * arcHeight;
 
-        float elapsedTime = 0f;
-        while (elapsedTime < horizontalMoveDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float progress = elapsedTime / horizontalMoveDuration;
-            ball.transform.position = Vector3.Lerp(startPosition, sidewaysTarget, progress);
-            yield return null;
-        }
-        ball.transform.position = sidewaysTarget;
-
-        Vector3 dropStart = ball.transform.position;
-        elapsedTime = 0f;
-        while (elapsedTime < dropDuration)
-        {
-            elapsedTime += Time.deltaTime;
-            float progress = elapsedTime / dropDuration;
-            ball.transform.position = Vector3.Lerp(dropStart, finalPosition, progress);
-            yield return null;
-        }
-        ball.transform.position = finalPosition;
-
-        isAnimating = false;
-
-        CheckWinCondition();
+        ball.transform.position = new Vector3(x, baseY + arcBoost, z);
+        yield return null;
     }
+
+    ball.transform.position = finalPosition;
+
+    isAnimating = false;
+
+    CheckWinCondition();
+}
 
     IEnumerator SimpleMoveAnimation(GameObject ball, Vector3 targetPosition, float duration)
     {
@@ -313,6 +397,11 @@ public class GameManager : MonoBehaviour
     void UpdateMoveCounterDisplay()
     {
         moveCounterText.text = "Moves: " + moveCount;
+    }
+
+    void UpdateLevelDisplay()
+    {
+        levelText.text = "Level " + currentLevel;
     }
 
     void CheckWinCondition()
